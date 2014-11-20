@@ -23,13 +23,13 @@ class ThrottleQueueTest < Test::Unit::TestCase
 	end
 	def testForeground
 		results = []
-		%w(apple banana cake donut egg).each {|w|
+		%w(apple banana cake donut egg).each_with_index {|w,i|
 			@t.foreground(w) {
 				results << w.capitalize
 			}
+			assert_equal %w(Apple Banana Cake Donut Egg)[0..i], results
 		}
 		@t.wait
-		assert_equal %w(Apple Banana Cake Donut Egg), results
 	end
 	def testBackgroundInFlight
 		results = []

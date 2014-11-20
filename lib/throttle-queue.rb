@@ -30,17 +30,7 @@ class ThrottleQueue
 
 	def wait(timeout = nil)
 		@mutex.synchronize {
-			t0 = Time.now
-			until idle?
-				elapsed = Time.now - t0
-				if timeout
-					timeout -= elapsed
-					break if timeout < 0
-				end
-				@idle.wait(@mutex, timeout)
-
-				run unless @queue.shutdown? or @queue.empty?
-			end
+			@idle.wait(@mutex, timeout) unless idle?
 		}
 	end
 
@@ -108,7 +98,12 @@ class ThrottleQueue
 
 			@mutex.synchronize {
 				@state = :idle
-				@idle.signal
+				if @queue.shutdown? or @queue.empty?
+					@idle.signal
+				else
+					# Restart to prevent a join deadlock
+					send :run
+				end
 			}
 		}
 	end
