@@ -1,6 +1,16 @@
 require 'thread'
-
+# ThrottleQueue is a thread-safe rate-limited work queue. It allows both
+# background and foreground operations.
+#
+# Example:
+#   q = ThrottleQueue 3
+#   files.each {|file|
+#     q.background(file) {|id|
+#       fetch file
+#     }
+#   }
 class ThrottleQueue
+	# Creates a new ThrottleQueue with the given rate limit (per second).
 	def initialize(limit)
 		raise "refusing to do zero work per second" if limit <= 0
 		@limit = limit
@@ -18,22 +28,30 @@ class ThrottleQueue
 		@state = :idle
 		@t0 = Time.now
 	end
-
+	# Signals the queue to stop processing and shutdown.
+	#
+	# Items still in the queue are dropped. Any item
+	# currently in flight will finish.
 	def shutdown
 		@queue.shutdown
 		@pausing.signal
 	end
-
+	# Returns true if there is nothing queued and no
+	# threads are running
 	def idle?
 		@state == :idle
 	end
-
+	# Blocks the calling thread while the queue processes work.
+	#
+	# Returns after the timeout has expired, or after the
+	# queue returns to the idle state.
 	def wait(timeout = nil)
 		@mutex.synchronize {
 			@idle.wait(@mutex, timeout) unless idle?
 		}
 	end
-
+	# Adds work to the queue to run in the background, and
+	# returns immediately.
 	def background(id, &block)
 		@mutex.synchronize {
 			if id != @in_flight
@@ -43,7 +61,11 @@ class ThrottleQueue
 			end
 		}
 	end
-
+	# Adds work to the queue ahead of all background work, and
+	# blocks until the given block has been called.
+	#
+	# Will preempt an id of the same value in either the
+	# background or foreground queues.
 	def foreground(id, &block)
 		t = nil
 		@mutex.synchronize {
@@ -107,7 +129,7 @@ class ThrottleQueue
 			}
 		}
 	end
-	class FG
+	class FG #:nodoc: all
 		def initialize(block, h)
 			@block = block
 			@thread = Thread.new {
@@ -130,7 +152,7 @@ class ThrottleQueue
 			@thread.join
 		end
 	end
-	class PriorityQueue
+	class PriorityQueue #:nodoc: all
 		def initialize
 			@mutex = Mutex.new
 			@fg = []
