@@ -52,6 +52,9 @@ class ThrottleQueue
 	end
 	# Adds work to the queue to run in the background, and
 	# returns immediately.
+	#
+	# If the block takes an argument, it will be passed the
+	# same id used to queue the work.
 	def background(id, &block)
 		@mutex.synchronize {
 			if id != @in_flight
@@ -66,6 +69,9 @@ class ThrottleQueue
 	#
 	# Will preempt an id of the same value in either the
 	# background or foreground queues.
+	#
+	# If the block takes an argument, it will be passed the
+	# same id used to queue the work.
 	def foreground(id, &block)
 		t = nil
 		@mutex.synchronize {
