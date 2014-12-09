@@ -57,7 +57,7 @@ class ThrottleQueue
 	# same id used to queue the work.
 	def background(id, &block)
 		@mutex.synchronize {
-			if id != @in_flight
+			unless @items.has_key? id
 				@items[id] = block
 				@queue.background id
 				run
@@ -67,8 +67,9 @@ class ThrottleQueue
 	# Adds work to the queue ahead of all background work, and
 	# blocks until the given block has been called.
 	#
-	# Will preempt an id of the same value in either the
-	# background or foreground queues.
+	# Will preempt an id of the same value in the
+	# background queue, and wait on an id of the same value already
+	# in the foreground queue.
 	#
 	# If the block takes an argument, it will be passed the
 	# same id used to queue the work.
@@ -78,13 +79,12 @@ class ThrottleQueue
 			if id == @in_flight
 				t = @processing_thread unless @processing_thread == Thread.current
 			else
-				b = @items[id]
-				b.kill if b.is_a? FG
-
-				t = @items[id] = FG.new block, self
-
-				@queue.foreground id
-				run
+				t = @items[id]
+				unless t.is_a? FG
+					t = @items[id] = FG.new block, self
+					@queue.foreground id
+					run
+				end
 			end
 		}
 		t.join if t
@@ -119,6 +119,11 @@ class ThrottleQueue
 						}
 					}
 					@processing_thread.join if @processing_thread
+
+					@mutex.synchronize {
+						@items.delete @in_flight
+						@in_flight = nil
+					}
 				end
 
 				@t0 = Time.now
@@ -139,7 +144,7 @@ class ThrottleQueue
 		def initialize(block, h)
 			@block = block
 			@thread = Thread.new {
-				Thread.stop
+				Thread.stop unless @args
 				@block.call *@args
 			}
 			@h = h
@@ -150,9 +155,6 @@ class ThrottleQueue
 		def call(*args)
 			@args = args
 			@thread.run
-		end
-		def kill
-			@thread.kill
 		end
 		def join
 			@thread.join

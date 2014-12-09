@@ -1,5 +1,6 @@
 require_relative '../lib/throttle-queue'
 require 'test/unit'
+require 'thread'
 
 class ThrottleQueueTest < Test::Unit::TestCase
 
@@ -61,7 +62,7 @@ class ThrottleQueueTest < Test::Unit::TestCase
 		}
 
 		@t.wait
-		assert_equal %w(Apple Banana CAKEYO Donut Egg), results
+		assert_equal %w(Apple Banana Cake Donut Egg), results
 	end
 	def testForegroundInFlight
 		results = []
@@ -88,7 +89,6 @@ class ThrottleQueueTest < Test::Unit::TestCase
 				results << 'CAKEYO'
 			}
 		}
-
 		%w(apple banana cake donut egg).each {|w|
 			@t.background(w) {
 				results << w.capitalize
@@ -123,6 +123,32 @@ class ThrottleQueueTest < Test::Unit::TestCase
 
 		@t.wait
 		assert_equal %w(Apple Banana Fish Grape Cake Donut Egg), results
+	end
+	def testForegroundWaitOnQueuedForeground
+		results = []
+		threads = []
+
+		ids = Queue.new
+		ids << 'apple' << 'banana' << 'banana' << 'banana'
+
+		values = Queue.new
+		values << 'Apple' << 'Banana' << 'BANANAYO' << 'DUDE'
+
+		ids.size.times {
+			threads << Thread.new {
+				@t.foreground(ids.pop) {
+					results << values.pop
+				}
+			}
+		}
+
+		threads.each {|t|
+			t.join
+		}
+		@t.wait
+		assert_equal %w(Apple Banana), results
+		assert_equal 0, ids.size
+		assert_equal 2, values.size
 	end
 	def testShutdownWithoutWaiting
 		results = []
