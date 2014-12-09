@@ -26,7 +26,7 @@ with Foogle Maps, has strict limits in place after which you start seeing 403s i
 of 200s.
 
 Let's say, for the above reason or another, you want to accumulate a cache of objects
-no faster than N times a second. You're happy to startup you app quickly and let your
+no faster than N times a second. You're happy to startup your app quickly and let your
 cache grow in the background. When a user requests a resource, you can bump it to the
 front of your queue and block until it is ready.
 
