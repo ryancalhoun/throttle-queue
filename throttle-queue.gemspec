@@ -10,3 +10,4 @@ Gem::Specification.new {|s|
 	s.files = ['lib/throttle-queue.rb', 'LICENSE.txt', 'README.md']
 	s.test_files = ['test/throttle-queue-test.rb', 'Rakefile']
 }
+
