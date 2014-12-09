@@ -65,6 +65,27 @@ again and will be blindly processed again. It is assumed the user of the object 
 whether the resource already exists, and will decide whether or not a given id should be
 added.
 
+## Multiple Processes
+
+Just bring in the multi-process-aware queue wrapper
+
+	require 'throttle-queue/multi-process'
+
+	q = ThrottleQueue::MultiProcess.new 3
+	files.each {|file|
+		q.background(file) {
+			fetch file
+		}
+	}
+
+Use this queue the same way in each process. Make sure each queue id has the same
+meaning in each process (e.g. file paths should be absolute or relative to the same
+working directory). If your processes race to stack up a bunch of background work, the
+first process to add each work will be the only one to execute its block.
+
+Do not fork after a multi-process queue is created. If your process forks itself,
+create each queue after the fork.
+
 ## Contributing
 
 1. Fork it
