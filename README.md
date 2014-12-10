@@ -57,8 +57,12 @@ Wait for everything to finish
 
 Each resource is assumed to have a unique identifier, e.g. a filename or a reproducible
 hash value. The queue does not check if the resource exists first, but it will check if
-the id has already been queued. Any time an id is added to the queue, the previous block
-is dropped in favor of the new.
+the id has already been queued. If an id is already in the queue and the same id is
+added as a background job, the block already in the queue is held onto; the new block is
+dropped. If an id is in the background queue, adding it to the foreground will cause the
+background block to be dropped. If an id is in the foreground queue, adding it again
+from another thread will cause the new block to be dropped, and the existing block to be
+waited upon.
 
 Once an id has made it through the queue and been processed, the same id can be added
 again and will be blindly processed again. It is assumed the user of the object knows
