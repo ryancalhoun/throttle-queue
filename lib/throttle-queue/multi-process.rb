@@ -1,5 +1,6 @@
 require 'drb'
 require 'fileutils'
+require 'tmpdir'
 require_relative 'single-process.rb'
 
 class ThrottleQueue
@@ -19,22 +20,26 @@ class ThrottleQueue
 		# If this is the first instace of the shared queue, it becomes the master queue and
 		# starts a DRbServer instace. If a DRbServer is already running, it connects to the
 		# queue as a remote DRbObject.
-		def initialize(limit, name = 'ThrottleQueue')
-			tmp = "/tmp/#{name}.sock"
+		def initialize(limit, opt = {})
+			opt[:name] ||= 'ThrottleQueue'
+			opt[:host] ||= Socket.gethostbyname[0] rescue 'localhost'
+
+			tmp = "#{Dir.tmpdir}/#{opt[:name]}.sock"
 			FileUtils.touch tmp
 			File.open(tmp, 'r+') {|f|
 				f.flock File::LOCK_EX
 				begin
 					port = f.read.to_i
+					uri = "druby://#{opt[:host]}:#{port}"
 					if port == 0
 						@queue = ThrottleQueue.new(limit)
-						@drb = DRb.start_service nil, @queue
+						@drb = DRb.start_service uri, @queue
 						f.seek 0, IO::SEEK_SET
 						f.truncate 0
 						f.write @drb.uri[/\d+$/]
 						f.flock File::LOCK_UN
 					else
-						@queue = DRbObject.new_with_uri("druby://localhost:#{port}")
+						@queue = DRbObject.new_with_uri(uri)
 						@queue.idle?
 						@drb = DRb.start_service
 						f.flock File::LOCK_UN
