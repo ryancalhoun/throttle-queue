@@ -41,7 +41,7 @@ class ThrottleQueue
 					else
 						@queue = DRbObject.new_with_uri(uri)
 						@queue.idle?
-						@drb = DRb.start_service
+						@drb = DRb.start_service "druby://#{opt[:host]}:0" 
 						f.flock File::LOCK_UN
 					end
 				rescue DRb::DRbConnError
