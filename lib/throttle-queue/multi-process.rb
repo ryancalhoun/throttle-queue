@@ -20,6 +20,12 @@ class ThrottleQueue
 		# If this is the first instace of the shared queue, it becomes the master queue and
 		# starts a DRbServer instace. If a DRbServer is already running, it connects to the
 		# queue as a remote DRbObject.
+		#
+		# The ephemeral server port is written to /tmp/ThrottleQueue.sock - use opt[:name]
+		# to override the default queue name and support multiple instances.
+		#
+		# The server will bind according to the machine's hostname - use opt[:host] to
+		# override this, e.g. if there are restrictions on which addresses may be used.
 		def initialize(limit, opt = {})
 			opt[:name] ||= 'ThrottleQueue'
 			opt[:host] ||= Socket.gethostbyname[0] rescue 'localhost'
