@@ -1,6 +1,6 @@
 Gem::Specification.new {|s|
 	s.name = 'throttle-queue'
-	s.version = '0.1.0'
+	s.version = '0.2.0'
 	s.licenses = ['MIT']
 	s.summary = 'A thread-safe rate-limited work queue'
 	s.description = 'A thread-safe rate-limited work queue, which allows for background and foreground operations.'
